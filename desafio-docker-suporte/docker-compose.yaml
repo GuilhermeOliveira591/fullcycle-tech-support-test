@@ -1,7 +1,6 @@
 version: '3'
 
 services:
-
   app:
     build:
       context: app
@@ -10,7 +9,8 @@ services:
     volumes:
       - ./app:/usr/src/app
     depends_on:
-      - database
+      database:
+        condition: service_healthy
 
   nginx:
     image: nginx:latest
@@ -30,10 +30,21 @@ services:
     tty: true
     volumes:
       - mysql:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3906:3306"
     environment:
-      - MYSQL_DATABASE=nodedb
-      - MYSQL_ROOT_PASSWORD=root
+      MYSQL_DATABASE: nodedb
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USERNAME: root
+      MYSQL_URL: database
 
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    
 volumes:
   mysql:
     driver: local
